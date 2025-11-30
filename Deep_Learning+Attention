@@ -1,0 +1,222 @@
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+from tensorflow.keras.layers import Layer, Input, Dense
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import Adam
+
+
+# ============================================================
+# 1. LOAD & PREPROCESS DATA
+# ============================================================
+
+data = pd.read_csv("Integrated_AQI_Data.csv")
+
+# Drop unwanted columns
+for col in ["Unnamed: 0", "Station"]:
+    if col in data.columns:
+        data = data.drop(columns=[col])
+
+# Scale features
+scaler = MinMaxScaler()
+scaled = scaler.fit_transform(data)
+scaled_df = pd.DataFrame(scaled, columns=data.columns)
+
+
+# ============================================================
+# 2. SEQUENCE CREATOR
+# ============================================================
+
+def create_sequences(df, target_col='PM2.5', n_steps=48):
+    X, y = [], []
+    for i in range(n_steps, len(df)):
+        X.append(df.iloc[i-n_steps:i].drop(columns=[target_col]).values)
+        y.append(df.iloc[i][target_col])
+    return np.array(X), np.array(y)
+
+
+n_steps = 48
+X, y = create_sequences(scaled_df, n_steps=n_steps, target_col='PM2.5')
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, shuffle=False
+)
+
+
+# ============================================================
+# 3. CUSTOM GRU LAYER (FIXED VERSION)
+# ============================================================
+
+class CustomGRU(Layer):
+    def __init__(self, units, return_sequences=True, **kwargs):
+        super().__init__(**kwargs)
+        self.units = units
+        self.return_sequences = return_sequences
+
+    def build(self, input_shape):
+        input_dim = input_shape[-1]
+
+        # Update gate
+        self.W_z = self.add_weight(
+            shape=(input_dim, self.units),
+            initializer="glorot_uniform",
+            name="W_z"
+        )
+        self.U_z = self.add_weight(
+            shape=(self.units, self.units),
+            initializer="glorot_uniform",
+            name="U_z"
+        )
+        self.b_z = self.add_weight(
+            shape=(self.units,),
+            initializer="zeros",
+            name="b_z"
+        )
+
+        # Reset gate
+        self.W_r = self.add_weight(
+            shape=(input_dim, self.units),
+            initializer="glorot_uniform",
+            name="W_r"
+        )
+        self.U_r = self.add_weight(
+            shape=(self.units, self.units),
+            initializer="glorot_uniform",
+            name="U_r"
+        )
+        self.b_r = self.add_weight(
+            shape=(self.units,),
+            initializer="zeros",
+            name="b_r"
+        )
+
+        # Candidate activation
+        self.W_h = self.add_weight(
+            shape=(input_dim, self.units),
+            initializer="glorot_uniform",
+            name="W_h"
+        )
+        self.U_h = self.add_weight(
+            shape=(self.units, self.units),
+            initializer="glorot_uniform",
+            name="U_h"
+        )
+        self.b_h = self.add_weight(
+            shape=(self.units,),
+            initializer="zeros",
+            name="b_h"
+        )
+
+        super().build(input_shape)
+
+    def call(self, x):
+        def step_fn(h, xt):
+            z = tf.sigmoid(tf.matmul(xt, self.W_z) + tf.matmul(h, self.U_z) + self.b_z)
+            r = tf.sigmoid(tf.matmul(xt, self.W_r) + tf.matmul(h, self.U_r) + self.b_r)
+            h_tilde = tf.tanh(tf.matmul(xt, self.W_h) + tf.matmul(r * h, self.U_h) + self.b_h)
+            h_new = (1 - z) * h + z * h_tilde
+            return h_new
+
+        batch_size = tf.shape(x)[0]
+        h_init = tf.zeros((batch_size, self.units))
+
+        # Transpose to (time_steps, batch, features) for scan
+        x_t = tf.transpose(x, [1, 0, 2])
+
+        # Use tf.scan to iterate over time steps
+        outputs = tf.scan(step_fn, x_t, initializer=h_init)
+
+        # Transpose back to (batch, time_steps, units)
+        outputs = tf.transpose(outputs, [1, 0, 2])
+
+        return outputs if self.return_sequences else outputs[:, -1, :]
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "units": self.units,
+            "return_sequences": self.return_sequences
+        })
+        return config
+
+
+# ============================================================
+# 4. CUSTOM ATTENTION LAYER
+# ============================================================
+
+class CustomAttention(Layer):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def build(self, input_shape):
+        dim = input_shape[-1]
+        self.W = self.add_weight(
+            shape=(dim, dim),
+            initializer="glorot_uniform",
+            name="attention_W"
+        )
+        super().build(input_shape)
+
+    def call(self, values):
+        score = tf.matmul(values, self.W)         # (batch, time, dim)
+        weights = tf.nn.softmax(score, axis=1)    # (batch, time, dim)
+        context = tf.reduce_sum(weights * values, axis=1, keepdims=True)
+        context = tf.tile(context, [1, tf.shape(values)[1], 1])
+        return context
+
+    def get_config(self):
+        return super().get_config()
+
+
+# ============================================================
+# 5. BUILD FINAL MODEL USING CUSTOM LAYERS
+# ============================================================
+
+def build_model(n_steps, n_features):
+    inp = Input(shape=(n_steps, n_features))
+
+    x = CustomGRU(128, return_sequences=True)(inp)
+    x = CustomGRU(64, return_sequences=True)(x)
+
+    attn = CustomAttention()(x)
+    last = attn[:, -1, :]       # Last timestep after attention
+
+    d1 = Dense(64, activation='relu')(last)
+    out = Dense(1)(d1)
+
+    model = Model(inp, out)
+    model.compile(optimizer=Adam(0.001), loss='mse')
+    return model
+
+
+model = build_model(n_steps, X.shape[2])
+model.summary()
+
+
+# ============================================================
+# 6. TRAIN MODEL
+# ============================================================
+
+history = model.fit(
+    X_train, y_train,
+    validation_split=0.1,
+    epochs=20,
+    batch_size=64,
+    verbose=1
+)
+
+
+# ============================================================
+# 7. PREDICT & EVALUATE
+# ============================================================
+
+y_pred = model.predict(X_test)
+
+print("\n============= FINAL RESULTS =============")
+print("R²   =", r2_score(y_test, y_pred))
+print("MAE  =", mean_absolute_error(y_test, y_pred))
+print("RMSE =", np.sqrt(mean_squared_error(y_test, y_pred)))
