@@ -1,1 +1,30 @@
 
+import pandas as pd
+
+# Manually load each CSV file (they must already exist in your Colab working directory)
+ashok = pd.read_csv("/content/AshokVihar_Hourly.csv")
+dc = pd.read_csv("/content/DCStadium_Hourly.csv")
+dwarka = pd.read_csv("/content/DwarkaSec8_Hourly.csv")
+najafgarh = pd.read_csv("/content/Najafgarh_Hourly.csv")
+nehru = pd.read_csv("/content/NehruNagar_Hourly.csv")
+okhla = pd.read_csv("/content/Okhla_Hourly.csv")
+
+# Add a column to identify station name
+ashok["Station"] = "AshokVihar"
+dc["Station"] = "DCStadium"
+dwarka["Station"] = "DwarkaSec8"
+najafgarh["Station"] = "Najafgarh"
+nehru["Station"] = "NehruNagar"
+okhla["Station"] = "Okhla"
+
+# Combine all datasets into one DataFrame
+data = pd.concat([ashok, dc, dwarka, najafgarh, nehru, okhla], ignore_index=True)
+
+# Save the integrated dataset
+data.to_csv("Integrated_AQI_Data.csv", index=False)
+
+# Display some info
+print("✅ Data integration completed successfully!")
+print("Total records:", len(data))
+print("Columns:", list(data.columns))
+data.head()
