@@ -30,6 +30,7 @@ You can use publicly available datasets such as:
 - [UCI Machine Learning Repository - Air Quality Dataset](https://archive.ics.uci.edu/ml/datasets/Air+Quality)
 - [OpenAQ API](https://openaq.org)
 - [Kaggle - Air Quality Data in India or Global Cities](https://www.kaggle.com/datasets)
+- https://data.mendeley.com/datasets/bzhzr9b64v/1
 
 **Typical features include:**
 - PM2.5, PM10  
