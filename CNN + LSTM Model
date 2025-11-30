@@ -12,13 +12,13 @@ from tensorflow.keras.optimizers import Adam
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 
 # ----------------------------------
-# 1️⃣ Load your dataset
+# 1️ Load your dataset
 # ----------------------------------
 # Replace the filename with your integrated file name
 data = pd.read_csv("Integrated_AQI_Data.csv")
 
 # ----------------------------------
-# 2️⃣ Prepare features and target
+# 2️ Prepare features and target
 # ----------------------------------
 # Drop columns that are not numeric or not needed
 data = data.drop(columns=['Unnamed: 0', 'Station'])  # remove unnecessary columns
@@ -28,20 +28,20 @@ X = data.drop(columns=['PM2.5'])
 y = data['PM2.5']
 
 # ----------------------------------
-# 3️⃣ Normalize feature data
+# 3️ Normalize feature data
 # ----------------------------------
 scaler = MinMaxScaler()
 X_scaled = scaler.fit_transform(X)
 
 # ----------------------------------
-# 4️⃣ Split data into training and testing sets
+# 4️ Split data into training and testing sets
 # ----------------------------------
 X_train, X_test, y_train, y_test = train_test_split(
     X_scaled, y, test_size=0.2, random_state=42
 )
 
 # ----------------------------------
-# 5️⃣ Reshape data for CNN + LSTM
+# 5️ Reshape data for CNN + LSTM
 # ----------------------------------
 # CNN/LSTM expects 3D input: (samples, timesteps, features)
 # We treat each feature vector as a single timestep sequence
@@ -49,7 +49,7 @@ X_train = np.expand_dims(X_train, axis=2)
 X_test = np.expand_dims(X_test, axis=2)
 
 # ----------------------------------
-# 6️⃣ Define CNN + LSTM model
+# 6️ Define CNN + LSTM model
 # ----------------------------------
 model = Sequential([
     # CNN feature extraction
@@ -73,12 +73,12 @@ model = Sequential([
 ])
 
 # ----------------------------------
-# 7️⃣ Compile the model
+# 7️ Compile the model
 # ----------------------------------
 model.compile(optimizer=Adam(learning_rate=0.001), loss='mse')
 
 # ----------------------------------
-# 8️⃣ Train the model
+# 8️ Train the model
 # ----------------------------------
 history = model.fit(
     X_train, y_train,
@@ -89,13 +89,13 @@ history = model.fit(
 )
 
 # ----------------------------------
-# 9️⃣ Evaluate model performance
+# 9️ Evaluate model performance
 # ----------------------------------
 y_pred = model.predict(X_test)
 r2 = r2_score(y_test, y_pred)
 mae = mean_absolute_error(y_test, y_pred)
 rmse = np.sqrt(mean_squared_error(y_test, y_pred))
 
-print(f"🎯 R²: {r2:.4f}")
-print(f"📉 MAE: {mae:.4f}")
-print(f"📈 RMSE: {rmse:.4f}")
+print(f" R²: {r2:.4f}")
+print(f" MAE: {mae:.4f}")
+print(f" RMSE: {rmse:.4f}")
