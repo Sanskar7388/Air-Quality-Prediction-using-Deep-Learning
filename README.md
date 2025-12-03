@@ -1,129 +1,126 @@
+**1. Problem Statement**
 
+Delhi experiences extremely high PM2.5 levels throughout the year, often crossing safe limits set by WHO. These pollution spikes affect public health, daily routines, and government planning. Being able to predict PM2.5 levels even one hour in advance can help people prepare, reduce exposure, and support authorities in taking timely actions.
 
-# **Air Quality Prediction Using GRU + Attention**
-
-## **1. Problem Statement**
-
-Delhi faces persistently high **PM2.5 pollution levels**, often exceeding WHO safety limits throughout the year. These pollution spikes severely impact public health, disrupt daily life, and complicate government decision-making.
-
-To address this challenge, the objective of this project is to build a **deep learning model capable of predicting the next hour’s PM2.5 concentration** using historical air-quality and meteorological data.
-Accurate short-term forecasts can help individuals plan their outdoor activities and assist authorities in deploying timely interventions.
+The goal of this project was to build a deep learning model that can forecast the next hour’s PM2.5 value by learning patterns from historical pollution and meteorological data.
 
 ---
 
-## **2. Dataset Description**
+**2. Dataset**
 
-### **Source**
+We used an air-quality dataset published on Mendeley Data, collected by the Central Pollution Control Board (CPCB) from six monitoring stations in Delhi.
 
-Hourly air-quality dataset from **Mendeley Data**, recorded by the **Central Pollution Control Board (CPCB)** across six monitoring stations in Delhi.
+Details
 
-### **Dataset Details**
+Duration: June 2018 to October 2019
 
-* **Duration:** June 2018 – October 2019
-* **Frequency:** Hourly
-* **Stations:** 6 locations across Delhi
+Frequency: Hourly data
 
-### **Features Used**
+Stations: 6 locations across Delhi
 
-**Pollutants:**
-PM2.5, PM10, NO₂, NOx, SO₂, CO, O₃
+**Features Used**
 
-**Weather Variables:**
-Temperature, Humidity, Pressure, Wind Speed
+Pollutants: PM2.5, PM10, NO₂, NOx, SO₂, CO, O₃
 
-### **Preprocessing Steps**
+Weather: Temperature, Humidity, Pressure, Wind Speed
 
-* Removed non-informative and redundant columns
-* Applied **Min–Max scaling** (fitted only on training data to avoid leakage)
-* Created **48-hour sliding windows** to predict the next hour
-* Used a **chronological split**:
+**Preprocessing**
 
-  * 80% Training
-  * 20% Testing
+Removed non-informative columns
+Applied Min-Max scaling
+Converted data into 48-hour sequences to predict the next hour
+Used a chronological 80% train / 20% test split
 
 ---
 
-## **3. Literature Review**
+**3. Literature Review**
 
-A brief review of recent studies helped shape model selection and methodology.
+The literature review was intentionally kept concise to focus on the models used in previous work and what results they achieved, so we could understand which architectures make sense for our project.
 
-### **Study 1: Guo et al. (2025)**
+Paper 1
 
-Proposed a **CNN–LSTM hybrid** to capture spatial + temporal features, achieving strong accuracy.
-DOI: 10.70711/aitr.v2i10.7147
+Guo, Zicheng, Shuqi Wu, and Meixing Zhu. “Air Quality PM2.5 Index Prediction Model Based on CNN - LSTM.” Artificial Intelligence Technology Research. 2, no. 10 (July 13, 2025). [https://doi.org/10.70711/aitr.v2i10.7147](https://doi.org/10.70711/aitr.v2i10.7147) .
 
-### **Study 2: Gayathri et al. (2024)**
+Model used: CNN-LSTM hybrid
+Result: Predicted PM2.5 accurately and captured both spatial and temporal patterns
 
-Compared **LSTM, Bi-LSTM, and CNN-BiLSTM**, with CNN-BiLSTM outperforming others in prediction error.
-Source: IJISAE
+Paper 2
 
-### **Study 3: Bawane et al. (2025)**
+M., Gayathri, Kavitha V., and Anand Jeyaraj. 2024. “Forecasting Air Quality With Deep Learning.” International Journal of Intelligent Systems and Applications in Engineering, May, 01–11. [https://www.ijisae.org](https://www.ijisae.org) .
 
-Evaluated **Random Forest, XGBoost, LSTM, and GRU**, concluding that GRU achieved the highest accuracy with **R² ≈ 0.95**.
-Source: J Neonatal Surg
+Model used: LSTM, Bi-LSTM, and CNN-BiLSTM
+Result: CNN-BiLSTM achieved the lowest errors among all tested models
 
-### **Summary of Literature Findings**
+Paper 3
 
-Across the studies:
+Bawane, Sheetal, Priyanka Chaudhary, Sanmati Kumar Jain, and Jitendra Singh Dodiya. 2025. “Forecasting of Air Quality Index Using Machine Learning and Deep Learning Models.” Journal of Neonatal Surgery 14 (18s): 1147–55. [https://www.jneonatalsurg.com](https://www.jneonatalsurg.com) .
 
-* Deep learning models consistently outperform classical ML models
-* **GRU, LSTM, and hybrid CNN-LSTM approaches** show the best forecasting performance
-* GRU is often preferred due to **faster training** and **lower computational load**
+Model used: Random Forest, XGBoost, LSTM, GRU
+Result: GRU performed the best with R² = 0.952
 
----
-
-## **4. Proposed Model: GRU + Attention**
-
-### **Why GRU?**
-
-* Captures long-term temporal patterns effectively
-* Computationally lighter than LSTM
-* Well-suited for real-time forecasting scenarios
-
-### **Model Pipeline**
-
-* **Input:** Past 48 hours of pollutant + weather data
-* **GRU Layer 1:** 128 units (custom implementation)
-* **GRU Layer 2:** 64 units
-* **Attention Layer:** Highlights the most influential past timesteps
-* **Slice Layer:** Selects the final timestep’s processed representation
-* **Dense Layer:** 64 units (ReLU)
-* **Output Layer:** Predicts PM2.5 for next hour
-
-### **Training Configuration**
-
-* **Train/Test Split:** Chronological 80/20
-* **Window Size:** 48 hours → 1 prediction
-* **Loss Function:** **Mean Squared Error (MSE)**
-
-  * Chosen because it heavily penalizes large errors, improving sensitivity to high pollution spikes
-* **Optimizer:** Adam
-* **Epochs:** 30
-* **Batch Size:** 4 (train), 2 (validation)
-
-### **Model Performance**
-
-| Model               | R² Score   | MAE        |
-| ------------------- | ---------- | ---------- |
-| **GRU + Attention** | **0.8523** | **0.0203** |
-| Bidirectional LSTM  | 0.8116     | 0.0209     |
-| Transformer Encoder | 0.7492     | 0.0330     |
-| CNN + LSTM          | 0.9151     | 17.1613    |
-| GRU                 | 0.9101     | 17.33      |
-
-The GRU + Attention model demonstrated a strong balance between accuracy and stability, particularly during abrupt changes in PM2.5 concentrations.
+Across all three papers, deep learning—especially GRU, LSTM, and hybrid models—consistently outperformed traditional machine-learning approaches.
 
 ---
 
-## **5. Key Learnings & Takeaways**
+**4. Our Main Model: GRU + Attention**
 
-* **GRU models** are highly effective for time-series forecasting involving long temporal dependencies.
-* **Attention mechanisms** improve robustness by identifying critical past moments influencing PM2.5 levels.
-* **Chronological splitting** is essential to prevent future data leakage.
-* Proper preprocessing—especially **scaling** and **time-window creation**—significantly affects model performance.
-* While Bi-LSTM and Transformer models performed reasonably well, **GRU + Attention** offered the best trade-off between **accuracy, computational cost, and interpretability**.
+For our final model, we designed a Custom GRU + Attention architecture to forecast PM2.5 values using the previous 48 hours of multivariate time-series data.
 
+**Why GRU?**
+
+GRUs learn long-term temporal patterns effectively
+They are lighter and faster than LSTMs
+Well suited for real-time forecasting tasks
+
+**Model Architecture**
+
+Input Sequence: Last 48 hours of pollution + weather data
+Custom GRU Layer 1: 128 units
+Custom GRU Layer 2: 64 units
+Attention Layer: Helps the model focus on the most relevant past timestamps
+Slice Layer: Selects the final processed timestep
+Dense Layer: 64 units (ReLU)
+Output Layer: Predicts PM2.5 for the next hour
+
+**Training Setup**
+
+Train/Test split: 80/20 in chronological order
+Min-Max scaling applied only on training data
+Sliding window of 48 steps → 1 prediction
+Loss: Mean Squared Error (MSE)
+Optimizer: Adam
+Epochs: 30
+Batch size: 4 (train), 2 (validation)
+
+**Results**
+
+| Model                 | R² Score | MAE     |
+| --------------------- | -------- | ------- |
+| GRU + Attention Layer | 0.8523   | 0.0203  |
+| Bidirectional LSTM    | 0.8116   | 0.0209  |
+| Transformer Encoder   | 0.7492   | 0.0330  |
+| CNN + LSTM            | 0.9151   | 17.1613 |
+| GRU                   | 0.9101   | 17.33   |
+
+**Model Interpretation**
+
+The GRU + Attention model performed reliably with low MAE and a strong R² score.
+The attention mechanism helped the model identify important past hours, making the predictions more stable during sudden changes in PM2.5.
+
+---
+
+**5. Final Learning & Takeaways From Our Work**
+
+GRU-based models work extremely well for time-series forecasting.
+The attention layer made the model more sensitive to sudden pollution changes.
+Using a chronological split was important to avoid data leakage.
+Proper scaling and sequence-window creation had a big impact on training stability.
+Models like Transformer and Bi-LSTM performed reasonably well, but GRU + Attention balanced accuracy, speed, and interpretability the best.
+
+This project helped us understand how temporal models work and how deep learning can be applied to real environmental problems.
+
+---
 
 Video Submission :- https://drive.google.com/file/d/1W6H4b332IznDeO400LqWD3TfiuCX5xKb/view?usp=sharing
 
-Authors: Aditya Masutey, Mukund Jha, Sanskar Sengar, Manish bist 
+Authors: Aditya Masutey, Mukund Jha, Sanskar Sengar, Manish Bist
