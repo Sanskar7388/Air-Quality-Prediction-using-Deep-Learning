@@ -123,4 +123,4 @@ This project helped us understand how temporal models work and how deep learning
 
 Video Submission :- https://drive.google.com/file/d/1W6H4b332IznDeO400LqWD3TfiuCX5xKb/view?usp=sharing
 
-Authors: Aditya Masutey, Mukund Jha, Sanskar Sengar, Manish Bist
+Authors: Aditya Masutey, Mukund Jha, Sanskar Sengar, Manish Bisht
