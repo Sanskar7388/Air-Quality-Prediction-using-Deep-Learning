@@ -37,21 +37,21 @@ Used a chronological 80% train / 20% test split
 
 The literature review was intentionally kept concise to focus on the models used in previous work and what results they achieved, so we could understand which architectures make sense for our project.
 
-Paper 1
+**Paper 1** 
 
 Guo, Zicheng, Shuqi Wu, and Meixing Zhu. “Air Quality PM2.5 Index Prediction Model Based on CNN - LSTM.” Artificial Intelligence Technology Research. 2, no. 10 (July 13, 2025). [https://doi.org/10.70711/aitr.v2i10.7147](https://doi.org/10.70711/aitr.v2i10.7147) .
 
 Model used: CNN-LSTM hybrid
 Result: Predicted PM2.5 accurately and captured both spatial and temporal patterns
 
-Paper 2
+**Paper 2**
 
 M., Gayathri, Kavitha V., and Anand Jeyaraj. 2024. “Forecasting Air Quality With Deep Learning.” International Journal of Intelligent Systems and Applications in Engineering, May, 01–11. [https://www.ijisae.org](https://www.ijisae.org) .
 
 Model used: LSTM, Bi-LSTM, and CNN-BiLSTM
 Result: CNN-BiLSTM achieved the lowest errors among all tested models
 
-Paper 3
+**Paper 3**
 
 Bawane, Sheetal, Priyanka Chaudhary, Sanmati Kumar Jain, and Jitendra Singh Dodiya. 2025. “Forecasting of Air Quality Index Using Machine Learning and Deep Learning Models.” Journal of Neonatal Surgery 14 (18s): 1147–55. [https://www.jneonatalsurg.com](https://www.jneonatalsurg.com) .
 
